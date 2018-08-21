@@ -5,11 +5,6 @@ output:
   pdf_document: default
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "C:/Users/rcc.dbp/Dropbox/PhD CBS/R dropbox/MCA")
-```
-
 ## Dansk politik i opbrud? Nye akser for danske politiske partier
 
 Denne korte guide viser, hvordan man i R kan analysere og visualisere de danske politiske partiers holdninger ved brug af PCA, principalkomponentanalyse. 
