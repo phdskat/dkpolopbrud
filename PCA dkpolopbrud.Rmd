@@ -1,0 +1,172 @@
+---
+title: "PCA dkpolopbrud"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "C:/Users/rcc.dbp/Dropbox/PhD CBS/R dropbox/MCA")
+```
+
+## Dansk politik i opbrud? Nye akser for danske politiske partier
+
+Denne korte guide viser, hvordan man i R kan analysere og visualisere de danske politiske partiers holdninger ved brug af PCA, principalkomponentanalyse. 
+
+"Det politiske spektrum" har en lang historie, men finder sit mest almindelige udtryk i dagligdagens "højrefløjen", "venstrefløjen", "blå blok" eller "rød blok".
+
+Virkeligheden er væsentligt mere nuanceret, men af forskellige årsager kan vi have en interesse i, analytisk eller retorisk, at se på de politiske partier som fordelt på simple akser.
+
+PCA er en metode, der tillader analytikeren at summere og visualisere datasæt med mange variabler og observationer på en enkel, overskuelig måde. Kort sagt kan vi via PCA identificere de væsentligste variabler, der adskiller forskellige individer eller grupper (her: partier), og udtrykker dem i nye variabler, kaldet hoved-komponenter eller 'dimensioner'.
+
+I denne analyse tager jeg udgangspunkt i variabler for de ni nuværende partier i Folketinget (Alternativet, Dansk Folkeparti, Det Konservative Folkepartie, Enhedslisten, Liberal Alliance, Radikale Venstre, Socialistisk Folkepartier, Socialdemokratiet og Venstre) fra Dagbladet Informations serie "Dansk politik er i opbrud – hvor står partierne?". I serien, der har kørt over sommeren, kortlægger eksperter på en skala fra 1 til 10 alle ni partier på ni forskellige politiske akser: klimapolitik, socialpolitik, kulturpolitik, udlændingepolitik, forsknings- samt uddannelsespolitik, sundhedspolitik, EU-politik, beskæftigelsespolitik og retspolitik. [Serien kan læses her](https://www.information.dk/serie/dansk-politik-opbrud-staar-partierne).
+
+Langt hoveddelen af koden her kommer fra [Alboukadel Kassambaras glimrende PCA-introduktion](http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/112-pca-principal-component-analysis-essentials/).
+
+***
+
+### Forberedelse 
+
+
+
+
+#### Indsamling af data
+
+Først har jeg samlet Informations score (1-10) for hvert parti for hver politisk akse i ét samlet dokument, der findes i mappen her: dkpolopbrud.csv.
+
+#### Indlæsning af data
+
+```{r}
+data <- read.csv("data/dkpolopbrud.csv", sep=";",row.names=1)
+data
+attach(data)
+```
+
+#### Installation af krævede pakker
+
+Til brug for PCA'en anvender vi pakkerne FactoMineR, factoextra og corrplot.
+
+```{r, eval=FALSE}
+install.packages(c("FactoMineR", "factoextra","corrplot"))
+```
+
+***
+
+### PCA og visualisering
+
+#### PCA-elementet
+
+Først generer vi selve PCA-elementet via funktionen PCA(). Hertil skal vi blot bruge vores data-element, og vi undlader for nu at se på den medfølgende graf. Efterfølgende kan vi printe (print) PCA-elementet, hvilket giver os en oversigt over de objekter, der er tilgængelige til videre analyse.
+
+```{r,warning=FALSE}
+library("FactoMineR")
+res.pca <- PCA(data, graph = FALSE)
+print(res.pca)
+```
+
+#### Variablers varians
+
+En første interessant ting, vi kan kigge på, er de variansen eller 'eigenvalues' for hvert af de hovedkomponenter (dimensions), som PCA'en har genereret. Her bruger vi get_eigenvalue().
+
+```{r,warning=FALSE}
+library("factoextra")
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+```
+
+Her kan vi se, at den første dimension forklarer 56,5% af variansen i vores data. For de to første dimensioner, er det 74,6%; for de tre førstedimensioner, 86,5%, og så fremdeles. Som hovedregel er vi mest interesseret i de hovedkomponenter (dimensioner), som fortæller os mest om forskellene mellem vores observationer, dvs. her forklarer mest varians mellem partiernes placering på de ni politiske akser.
+
+Vi kan også visualisere variansen med et såkaldte 'scree plot' (via fviz_eig()), der giver os dimensionerne rangerer fra højest til lavest varians - via funktionen fviz_eig(). I koden tilføjer vi labels for de enkelte datapunkter og definerer y-aksen som mellem 0 og 60 (da vores største værdi er 56,5).
+
+```{r}
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 60))
+```
+
+#### Variabler og hovedkomponenter (dimensioner)
+
+En næste interessant ting, vi kan se på, er, hvordan vores variabler (de ni politiske områder) bidrager til hvilke dimensioner. Her tager vi blot PCA-elementet (res.pca) og vælger (med $) variablerne, og dernæst deres 'koordinater' (coord).
+
+```{r}
+res.pca$var$coord
+```
+
+Vi kan visualisere sammenhængen på forskellige måder. Først kan vi via fviz_pca-funktionaliteten se på såkaldte 'korrelationscirkel', som giver et simpelt, fortolkeligt billede. Pr. default ser vi på de to første (og vigtigste) dimensioner.
+
+```{r}
+fviz_pca_var(res.pca)
+```
+
+Her kan vi se, hvordan 'koordinaterne' foroven definerer politikområdernes placering i systemet. Vi kan se, at de mere 'klassiske' (hvis man kan kalde dem det) politiske områder - kultur, forskning, sundhed, beskæftigelse og socialpolitik - alle sammen 'trækker i samme retning' og spiller en stor rolle på dimension 1 (x-aksen). EU-politik, derimod, trækker i sin helt egen retning og spiller en central rolle i dimension 2 (y-aksen). Udlændinge- og klima-politik er ligeledes i en boldgade for sig selv.
+
+Her kan vi med fordel kigge tilbage på vores originale data, hvor vi eksempelvis kan se at, EU-politik bryder væsentligt de traditionelle 'blok'-mønstre, med stor enighed mellem især Enhedslisten og Dansk Folkeparti. 
+
+```{r}
+print(data)
+```
+
+Vi kan få et endnu mere klart overblik over, hvordan de enkelte variabler bidrager til vores hovedkomponenter via et korrelationsplot (corrplot). Her vælger vi variablerne (var) og deres bidrag (contrib) til hver dimension. Bidraget (contrib) giver udtryk for den procentdel af hovedkomponentets varians, som den enkelte variabel styrer. Vi tilføjer i øvrigt "is.corr=FALSE" for at definere, at det data, vi fodrer funktionen, er en almindelig matrix, og ikke en korrelationsmatrix.
+
+```{r,warning=FALSE}
+library("corrplot")
+corrplot(res.pca$var$contrib, is.corr=FALSE)
+```
+
+Igen kan vi se, at dimension 1 - den vigtigste dimension - er defineret af en række forskellige politikområder, dog især sundhed, beskæftigelse og socialpolitik, mens dimension 2 - den næst-vigtigste dimension - især er defineret af EU-politikken. 
+
+***
+
+#### Partier og hovedkomponenter
+
+Nå, nu til det, vi egentlig kom for: hvordan fordeler de politiske partier sig relativt hinanden?
+
+Først kan vi (som vi gjorde ovenfor for de ni politiske områder, se på hvordan partierne bidrager til hvilke dimensioner. Her tager vi igen PCA-elementet, men vælger ind (individer) frem for var (variabler).
+
+```{r}
+res.pca$ind$coord
+```
+
+Igen kan vi visualisere sammenhængen i ved fviz_pca, som giver et simpelt, fortolkeligt billede. Igen kigger vi på de to første, vigtigste dimensioner: (Vi tilføjer også en titel og definerer repel=TRUE for at undgå overlap mellem partiernes navne i grafen.)
+
+```{r}
+fviz_pca_ind(res.pca, title="Partier - PCA", repel=TRUE)
+```
+
+Ikke uventet ser vi nogle naturlige grupperinger: Den siddende regering, V-K-LA, er relativt samlet, mens oppositionen er mere splittet, med Socialdemokratiet nærmest regeringen. 
+
+De to væsentligste outliers er DF og Radikale. På dimension 1 placerer de sig nogenlunde som forventet, hvis man tager udgangspunkt i en klassisk venstre-højre akse, men på dimension 2 skiller de sig væsentligt ud.
+
+Vi kan måske bedst illustrere dette ved igen at kigge på et scree plot. Først kigger vi på dimension 2, hvor altså DF og Radikale skiller sig noget ud, ved hjælp af fviz_contribution():
+
+```{r}
+fviz_contrib(res.pca, choice="ind",axes=2)
+```
+
+Her kan vi se, at DF i særdeleshed, og i mindre grad De Radikale, er styrende for dimensionen. Det skyldes, kort sagt, de to partiers holdninger til de politikområder, der definerer dimensionen (altså især EU-politik, men også andre områder), er stærkest korreleret med komponentet. Og komponentet forklarer, som vi så ovenfor, 18,1% af variansen i vores data.
+
+Kigger vi på den første dimension, så er fordelingen mere jævn, men stærkest korreleret med komponentet er Liberal Alliance og Enhedslistens politiske holdninger.
+
+```{r}
+fviz_contrib(res.pca, choice="ind",axes=1)
+```
+
+***
+
+### Konklusion
+
+PCA giver mulighed for at reducere kompleksiteten i større datasæt. Her har jeg først at illustrere, hvordan metoden kan bruges til at analysere danske politiske partiers holdninger og relative positioner, med udgangspunkt i data fra Dagbladet Informations serie, "Dansk politik i opbrud".
+
+Det giver os et første blik på, hvilke politikområder og partier, der er styrende for positioner i det danske politiske spektrum, og hvilke, der skaber spredning.
+
+Der er en nærmest uendelig række yderligere muligheder for at analysere denne type, og andre typer data, med PCA. Her håber jeg at have givet et brugbart eksempel på, hvordan det eksempelvis kan bruges i praksis. Nedenfor links til forskellige brugbare ressourcer:
+
+#### Referencer
+
+Dunteman, G. H. (1989). Principal Components Analysis. Newbury Park, Calif.:SAGE Publications, Inc.
+
+Husson, F., Josse, J., Le, S., & Mazet, J. (2018). Package ‘FactoMineR’. CRAN. https://cran.r-project.org/web/packages/FactoMineR/FactoMineR.pdf.
+
+Kassambara, M. A. (2017). Practical Guide To Principal Component Methods in R. United States:CreateSpace Independent Publishing Platform.
+
+Vyas, S., & Kumaranayake, L. (2006). Constructing socio-economic status indices: how to use principal components analysis. Health Policy and Planning, 21(6), 459–468.
+
